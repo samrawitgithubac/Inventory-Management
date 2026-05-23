@@ -29,3 +29,4 @@ A responsive Inventory Management CRUD application built with Next.js, Drizzle O
 ```bash
 npm install
 npm run dev
+```bash
