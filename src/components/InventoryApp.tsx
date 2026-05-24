@@ -2,6 +2,23 @@
 
 import Image from "next/image";
 import {
+  AlertTriangle,
+  ArrowRight,
+  Download,
+  LayoutDashboard,
+  Menu,
+  Moon,
+  Package,
+  Plus,
+  Search,
+  Sparkles,
+  Sun,
+  PackageX,
+  Upload,
+  Wallet,
+  X,
+} from "lucide-react";
+import {
   FormEvent,
   useCallback,
   useEffect,
@@ -9,9 +26,15 @@ import {
   useMemo,
   useState,
 } from "react";
+import DashboardCharts from "@/components/dashboard/DashboardCharts";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import EmptyState from "@/components/dashboard/EmptyState";
+import StatCard from "@/components/dashboard/StatCard";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import Toast, { type ToastType } from "@/components/Toast";
+import { LOW_STOCK_THRESHOLD, StockBadge } from "@/components/ui/StockBadge";
 import type { Item } from "@/db/schema";
+import { cn } from "@/lib/cn";
 
 type FormState = {
   name: string;
@@ -29,19 +52,10 @@ const emptyForm: FormState = {
   price: "0.00",
 };
 
-const inputClass =
-  "mt-1.5 w-full min-h-[44px] rounded-lg border border-zinc-200 bg-zinc-50/80 px-3.5 py-2.5 text-base text-zinc-900 placeholder:text-zinc-400 transition focus:border-[var(--primary)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/25 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 sm:text-sm";
-
-const btnPrimary =
-  "min-h-[48px] flex-1 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-amber-900/10 hover:bg-[var(--primary-hover)] disabled:opacity-60";
-
 type InventoryAppProps = {
   initialItems?: Item[];
   loadError?: string | null;
 };
-
-/** Quantity below this (but above 0) shows as "Low stock". */
-const LOW_STOCK_THRESHOLD = 5;
 
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -54,54 +68,6 @@ function formatDate(date: Date | string) {
 function getQuantityForStatus(value: string) {
   const qty = Number(value);
   return Number.isNaN(qty) || qty < 0 ? 0 : qty;
-}
-
-function StockStatus({ quantity }: { quantity: number }) {
-  if (quantity === 0) {
-    return (
-      <span className="inline-flex rounded-full border border-zinc-300 bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-        Out of stock
-      </span>
-    );
-  }
-  if (quantity < LOW_STOCK_THRESHOLD) {
-    return (
-      <span className="inline-flex rounded-full border border-zinc-400 bg-white px-3 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-500 dark:bg-zinc-900 dark:text-zinc-300">
-        Low stock
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-medium text-white">
-      In stock
-    </span>
-  );
-}
-
-function NavIcon({ name, className }: { name: string; className?: string }) {
-  const props = { className: className ?? "h-5 w-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 1.5 };
-  switch (name) {
-    case "dashboard":
-      return (
-        <svg {...props}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-        </svg>
-      );
-    case "products":
-      return (
-        <svg {...props}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9-5.25m0 0-9-5.25M3 7.5l9 5.25M3 7.5v9l9 5.25 9-5.25V7.5" />
-        </svg>
-      );
-    case "add":
-      return (
-        <svg {...props}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-      );
-    default:
-      return null;
-  }
 }
 
 export default function InventoryApp({
@@ -150,6 +116,7 @@ export default function InventoryApp({
   const lowStockCount = items.filter(
     (i) => i.quantity > 0 && i.quantity < LOW_STOCK_THRESHOLD,
   ).length;
+  const outOfStockCount = items.filter((i) => i.quantity === 0).length;
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -379,33 +346,42 @@ export default function InventoryApp({
     maximumFractionDigits: 2,
   });
 
-  const navItems: { id: View; label: string; icon: string }[] = [
-    { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-    { id: "add-product", label: "Add Product", icon: "add" },
+  const navItems: {
+    id: View;
+    label: string;
+    icon: typeof LayoutDashboard;
+  }[] = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "add-product", label: "Add Product", icon: Plus },
   ];
 
   const sidebar = (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white transition-transform duration-200 dark:border-zinc-800 dark:bg-zinc-950 lg:static lg:z-auto lg:translate-x-0 ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      }`}
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--card)] shadow-lg transition-transform duration-300 ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
+      )}
     >
-      <div className="flex items-center gap-3 border-b border-zinc-100 px-5 py-5 dark:border-zinc-800">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af37] to-[#b8941f] text-white shadow-md shadow-amber-900/20">
-          <span className="text-lg font-bold">I</span>
+      <div className="flex items-center gap-3 border-b border-[var(--border)] px-5 py-5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-hover)] text-white shadow-md ring-1 ring-[var(--primary-muted)]">
+          <Package className="h-5 w-5" strokeWidth={2.25} />
         </div>
-        <span className="text-lg font-bold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">
-          Inventory
-        </span>
+        <div>
+          <span className="block text-lg font-bold leading-tight tracking-tight text-[var(--foreground)]">
+            Inventory
+          </span>
+          <span className="text-xs font-medium text-[var(--muted)]">Management</span>
+        </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           Menu
         </p>
         <ul className="space-y-0.5">
           {navItems.map((item) => {
             const active = view === item.id;
+            const Icon = item.icon;
             return (
               <li key={item.id}>
                 <button
@@ -414,18 +390,23 @@ export default function InventoryApp({
                     if (item.id === "add-product") resetForm();
                     goTo(item.id);
                   }}
-                  className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  className={cn(
+                    "relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     active
-                      ? "bg-[var(--primary-soft)] text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
-                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-                  }`}
+                      ? "bg-[var(--primary-soft)] text-[var(--primary-hover)] shadow-sm dark:text-[var(--primary)]"
+                      : "text-[var(--muted)] hover:bg-[var(--primary-soft)]/60 hover:text-[var(--foreground)]",
+                  )}
                 >
                   {active && (
                     <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[var(--primary)]" />
                   )}
-                  <span className={active ? "text-[var(--primary-hover)] dark:text-[var(--primary)]" : "text-zinc-400"}>
-                    <NavIcon name={item.icon} />
-                  </span>
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0",
+                      active ? "text-[var(--primary)]" : "opacity-70",
+                    )}
+                    strokeWidth={active ? 2.25 : 1.75}
+                  />
                   {item.label}
                 </button>
               </li>
@@ -435,13 +416,11 @@ export default function InventoryApp({
             <button
               type="button"
               onClick={() => goTo("dashboard")}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-900"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--muted)] transition-all duration-200 hover:bg-[var(--primary-soft)]/60 hover:text-[var(--foreground)]"
             >
-              <span className="text-zinc-400">
-                <NavIcon name="products" />
-              </span>
+              <Package className="h-5 w-5 shrink-0 opacity-70" strokeWidth={1.75} />
               Products
-              <span className="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+              <span className="ml-auto rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--primary-hover)] ring-1 ring-[var(--primary-muted)] dark:text-[var(--primary)]">
                 {items.length}
               </span>
             </button>
@@ -452,24 +431,24 @@ export default function InventoryApp({
   );
 
   const productForm = (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
-      <div className="mb-6 border-b border-zinc-100 pb-4 dark:border-zinc-800">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+    <div className="card-surface animate-fade-up p-4 sm:p-6">
+      <div className="mb-6 border-b border-[var(--border)] pb-4">
+        <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
           {editingId ? "Edit product" : "Add new product"}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="page-subtitle !mt-1">
           {editingId ? "Update product details below." : "Fill in the form to add to inventory."}
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+      <form onSubmit={handleSubmit} className="max-w-xl space-y-5">
         <div>
-          <label htmlFor="name" className="text-sm font-medium text-zinc-700">
+          <label htmlFor="name" className="label-text">
             Product name *
           </label>
           <input
@@ -477,12 +456,12 @@ export default function InventoryApp({
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className={inputClass}
+            className="input-field"
             placeholder="e.g. Inhaler X12"
           />
         </div>
         <div>
-          <label htmlFor="description" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="description" className="label-text">
             Description
           </label>
           <textarea
@@ -490,13 +469,13 @@ export default function InventoryApp({
             rows={3}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className={`${inputClass} resize-none`}
+            className="input-field resize-none"
             placeholder="Optional"
           />
         </div>
         <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
           <div>
-            <label htmlFor="quantity" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="quantity" className="label-text">
               Quantity *
             </label>
             <input
@@ -506,9 +485,9 @@ export default function InventoryApp({
               required
               value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              className={inputClass}
+              className="input-field"
             />
-            <p className="mt-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
               Status is chosen automatically from quantity:
               <span className="mt-1 block">
                 0 → Out of stock · 1–{LOW_STOCK_THRESHOLD - 1} → Low stock ·{" "}
@@ -516,18 +495,18 @@ export default function InventoryApp({
               </span>
             </p>
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Status preview:
-              </span>
-              <StockStatus quantity={getQuantityForStatus(form.quantity)} />
+              <span className="text-xs font-medium text-[var(--muted)]">Status preview:</span>
+              <StockBadge quantity={getQuantityForStatus(form.quantity)} />
             </div>
           </div>
           <div>
-            <label htmlFor="price" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="price" className="label-text">
               Price *
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]">
+                $
+              </span>
               <input
                 id="price"
                 type="number"
@@ -536,13 +515,13 @@ export default function InventoryApp({
                 required
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className={`${inputClass} pl-7`}
+                className="input-field !pl-7"
               />
             </div>
           </div>
         </div>
         <div>
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Product image</span>
+          <span className="label-text">Product image</span>
           <input
             id={imageInputId}
             type="file"
@@ -551,8 +530,8 @@ export default function InventoryApp({
             className="sr-only"
           />
           {imagePreview ? (
-            <div className="mt-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
-              <div className="relative aspect-video max-h-48 w-full bg-zinc-100 dark:bg-zinc-800">
+            <div className="mt-2 overflow-hidden rounded-xl border border-[var(--border)]">
+              <div className="relative aspect-video max-h-48 w-full bg-[var(--background)]">
                 <Image
                   src={imagePreview}
                   alt="Preview"
@@ -561,18 +540,20 @@ export default function InventoryApp({
                   unoptimized={imagePreview.startsWith("blob:")}
                 />
               </div>
-              <div className="flex border-t border-zinc-200 dark:border-zinc-700">
+              <div className="flex border-t border-[var(--border)]">
                 <label
                   htmlFor={imageInputId}
-                  className="flex-1 cursor-pointer py-2.5 text-center text-sm font-medium text-[var(--primary-hover)] hover:bg-[var(--primary-soft)] dark:text-[var(--primary)] dark:hover:bg-amber-950/30"
+                  className="flex flex-1 cursor-pointer items-center justify-center gap-2 py-2.5 text-sm font-medium text-[var(--primary-hover)] transition hover:bg-[var(--primary-soft)] dark:text-[var(--primary)]"
                 >
+                  <Upload className="h-4 w-4" />
                   Replace
                 </label>
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="flex-1 border-l border-zinc-200 py-2.5 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  className="flex flex-1 items-center justify-center gap-2 border-l border-[var(--border)] py-2.5 text-sm text-[var(--muted)] transition hover:bg-[var(--primary-soft)]/50"
                 >
+                  <X className="h-4 w-4" />
                   Remove
                 </button>
               </div>
@@ -580,15 +561,16 @@ export default function InventoryApp({
           ) : (
             <label
               htmlFor={imageInputId}
-              className="mt-2 flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-zinc-200 py-8 hover:border-[var(--primary)] hover:bg-[var(--primary-soft)] dark:border-zinc-700 dark:hover:bg-amber-950/20"
+              className="mt-2 flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-[var(--border)] py-10 transition-all duration-200 hover:border-[var(--primary)] hover:bg-[var(--primary-soft)]"
             >
-              <span className="text-sm font-medium text-zinc-600">Upload image</span>
-              <span className="mt-1 text-xs text-zinc-400">PNG, JPG up to 5MB</span>
+              <Upload className="mb-2 h-8 w-8 text-[var(--primary)]" strokeWidth={1.5} />
+              <span className="text-sm font-medium text-[var(--foreground)]">Upload image</span>
+              <span className="mt-1 text-xs text-[var(--muted)]">PNG, JPG up to 5MB</span>
             </label>
           )}
         </div>
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-          <button type="submit" disabled={submitting} className={btnPrimary}>
+          <button type="submit" disabled={submitting} className="btn-primary flex-1">
             {submitting ? "Saving…" : editingId ? "Save changes" : "Add product"}
           </button>
           <button
@@ -597,7 +579,7 @@ export default function InventoryApp({
               resetForm();
               goTo("dashboard");
             }}
-            className="min-h-[48px] rounded-lg border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="btn-secondary flex-1"
           >
             Cancel
           </button>
@@ -606,8 +588,38 @@ export default function InventoryApp({
     </div>
   );
 
+  const quickActions = [
+    {
+      title: "Add Product",
+      desc: "Add and manage inventory",
+      icon: Plus,
+      action: () => {
+        resetForm();
+        goTo("add-product");
+      },
+    },
+    {
+      title: "Products",
+      desc: `${items.length} items in catalog`,
+      icon: Package,
+      action: () => goTo("dashboard"),
+    },
+    {
+      title: "Low stock",
+      desc: `${lowStockCount} need attention`,
+      icon: AlertTriangle,
+      action: () => setStatusFilter("low"),
+    },
+    {
+      title: "Export data",
+      desc: "Download CSV report",
+      icon: Download,
+      action: exportCsv,
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-zinc-100 dark:bg-zinc-950">
+    <div className="flex min-h-screen bg-[var(--background)]">
       {sidebarOpen && (
         <button
           type="button"
@@ -621,19 +633,17 @@ export default function InventoryApp({
 
       <div className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 sm:px-6 sm:py-4">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--card)]/90 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="shrink-0 rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900 lg:hidden"
+              className="btn-secondary !min-h-0 shrink-0 !p-2.5 lg:hidden"
               aria-label="Open menu"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
+              <Menu className="h-5 w-5" />
             </button>
-            <p className="truncate text-sm font-medium text-zinc-600 sm:text-base dark:text-zinc-400">
+            <p className="truncate text-sm font-medium text-[var(--muted)] sm:text-base">
               Welcome to{" "}
               <span className="font-semibold text-[var(--primary-hover)] dark:text-[var(--primary)]">
                 Inventory Management
@@ -643,159 +653,172 @@ export default function InventoryApp({
           <button
             type="button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="shrink-0 rounded-lg border border-zinc-200 p-2.5 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            className="btn-secondary !min-h-0 shrink-0 !p-2.5"
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             {theme === "dark" ? (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-              </svg>
+              <Sun className="h-5 w-5" />
             ) : (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-              </svg>
+              <Moon className="h-5 w-5" />
             )}
           </button>
         </header>
 
         <main className="flex-1 p-4 sm:p-6">
           {view === "add-product" ? (
-            <div>
-              <p className="mb-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Inventory / <span className="text-zinc-800 dark:text-zinc-200">{editingId ? "Edit" : "Add Product"}</span>
+            <div className="animate-fade-up">
+              <p className="text-sm text-[var(--muted)]">
+                Inventory /{" "}
+                <span className="font-medium text-[var(--foreground)]">
+                  {editingId ? "Edit" : "Add Product"}
+                </span>
               </p>
-              <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-50 sm:text-3xl">
+              <h1 className="page-title mb-6 mt-1">
                 {editingId ? "Edit product" : "Add product"}
               </h1>
               {productForm}
             </div>
+          ) : loading && items.length === 0 ? (
+            <DashboardSkeleton />
           ) : (
-            <>
-              {/* Page header */}
+            <div className="animate-fade-up">
               <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Inventory / <span className="text-zinc-800 dark:text-zinc-200">Dashboard</span>
+                  <p className="text-sm text-[var(--muted)]">
+                    Inventory /{" "}
+                    <span className="font-medium text-[var(--foreground)]">Dashboard</span>
                   </p>
-                  <h1 className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50 sm:text-3xl">Dashboard</h1>
+                  <h1 className="page-title mt-1">Dashboard</h1>
+                  <p className="page-subtitle">
+                    Overview of inventory value, stock health, and products.
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                    defaultValue="all"
-                    aria-label="Filter date"
-                  >
-                    <option value="all">All time</option>
-                    <option value="month">This month</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={exportCsv}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--primary-hover)]"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12M12 16.5V3.75" />
-                    </svg>
-                    Export
+                  <button type="button" onClick={exportCsv} className="btn-primary !min-h-10">
+                    <Download className="h-4 w-4" />
+                    Export CSV
                   </button>
                 </div>
               </div>
 
-              {error && view === "dashboard" && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {error && (
+                <div className="mb-4 rounded-xl border border-red-200/80 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
                   {error}
                 </div>
               )}
 
-              {/* Stats */}
-              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Inventory value</p>
-                  <p className="mt-2 text-3xl font-bold text-[var(--primary-hover)] dark:text-[var(--primary)]">${formattedTotal}</p>
-                  <p className="mt-2 text-xs text-zinc-400">Last update: just now</p>
-                </div>
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Total products</p>
-                  <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-50">{items.length}</p>
-                  <p className="mt-2 text-xs text-zinc-400">Active on the platform</p>
-                </div>
-                <div className="flex flex-col justify-between rounded-2xl border border-[#b8941f] bg-gradient-to-br from-[#d4af37] to-[#b8941f] p-5 text-white shadow-md shadow-amber-900/15 sm:col-span-2 lg:col-span-1">
-                  <div>
-                    <p className="text-lg font-semibold leading-snug">
-                      Manage inventory on the go!
-                    </p>
-                    <p className="mt-2 text-sm text-amber-50/90">Add and track products anytime.</p>
+              <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard
+                  label="Inventory value"
+                  value={`$${formattedTotal}`}
+                  hint="Price × quantity across catalog"
+                  icon={Wallet}
+                  variant="gold"
+                  trend={items.length > 0 ? "Live total" : undefined}
+                />
+                <StatCard
+                  label="Total products"
+                  value={String(items.length)}
+                  hint="Active in your catalog"
+                  icon={Package}
+                />
+                <StatCard
+                  label="Low stock"
+                  value={String(lowStockCount)}
+                  hint={`Qty 1–${LOW_STOCK_THRESHOLD - 1} needs reorder`}
+                  icon={AlertTriangle}
+                />
+                <StatCard
+                  label="Out of stock"
+                  value={String(outOfStockCount)}
+                  hint="Zero quantity items"
+                  icon={PackageX}
+                  variant="dark"
+                />
+              </div>
+
+              <div className="card-surface mb-6 flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-hover)] text-white shadow-md">
+                    <Sparkles className="h-6 w-6" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetForm();
-                      goTo("add-product");
-                    }}
-                    className="mt-4 w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-50 sm:w-auto sm:px-6"
-                  >
-                    Add new product
-                  </button>
+                  <div>
+                    <p className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
+                      Manage inventory on the go
+                    </p>
+                    <p className="page-subtitle !mt-1">
+                      Add products, track stock levels, and export reports in one place.
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    goTo("add-product");
+                  }}
+                  className="btn-primary shrink-0"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add new product
+                </button>
               </div>
 
-              {/* Quick actions */}
+              <DashboardCharts items={items} />
+
               <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  { title: "Add Product", desc: "Add and manage inventory", action: () => { resetForm(); goTo("add-product"); } },
-                  { title: "Products", desc: `${items.length} items in catalog`, action: () => goTo("dashboard") },
-                  { title: "Low stock", desc: `${lowStockCount} need attention`, action: () => setStatusFilter("low") },
-                  { title: "Export data", desc: "Download CSV report", action: exportCsv },
-                ].map((card) => (
-                  <button
-                    key={card.title}
-                    type="button"
-                    onClick={card.action}
-                    className="group flex items-start justify-between rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm transition hover:border-[var(--primary)] hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-[var(--primary)]"
-                  >
-                    <div>
-                      <p className="font-semibold text-zinc-900 dark:text-zinc-50">{card.title}</p>
-                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{card.desc}</p>
-                    </div>
-                    <span className="rounded-full bg-[var(--primary-soft)] p-1.5 text-[var(--primary-hover)] transition group-hover:bg-[var(--primary)] group-hover:text-white dark:bg-amber-950/40 dark:text-[var(--primary)]">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </span>
-                  </button>
-                ))}
+                {quickActions.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <button
+                      key={card.title}
+                      type="button"
+                      onClick={card.action}
+                      className="card-surface group flex items-start justify-between p-4 text-left transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--foreground)]">{card.title}</p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">{card.desc}</p>
+                      </div>
+                      <span className="flex items-center gap-1 rounded-full bg-[var(--primary-soft)] p-2 text-[var(--primary-hover)] transition-all duration-200 group-hover:bg-[var(--primary)] group-hover:text-white dark:text-[var(--primary)]">
+                        <Icon className="h-4 w-4" strokeWidth={2} />
+                        <ArrowRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Products table */}
-              <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="border-b border-zinc-100 px-4 py-4 dark:border-zinc-800 sm:px-6">
+              <div className="card-surface overflow-hidden !shadow-[var(--shadow-sm)]">
+                <div className="border-b border-[var(--border)] px-4 py-4 sm:px-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">New products</h2>
+                    <div>
+                      <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
+                        Products
+                      </h2>
+                      <p className="text-sm text-[var(--muted)]">
+                        {filteredItems.length} of {items.length} shown
+                      </p>
+                    </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <div className="relative">
-                        <svg
-                          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                        </svg>
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
                         <input
                           type="search"
                           placeholder="Search products…"
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
-                          className="w-full rounded-lg border border-zinc-200 py-2 pl-9 pr-3 text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 sm:w-56"
+                          className="input-field !mt-0 w-full !min-h-10 !py-2 !pl-9 sm:w-56"
                         />
                       </div>
                       <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                        className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300"
+                        onChange={(e) =>
+                          setStatusFilter(e.target.value as typeof statusFilter)
+                        }
+                        className="input-field !mt-0 !min-h-10 !w-auto cursor-pointer !py-2"
                       >
-                        <option value="all">Filter by status</option>
+                        <option value="all">All statuses</option>
                         <option value="in">In stock</option>
                         <option value="low">Low stock</option>
                         <option value="out">Out of stock</option>
@@ -806,24 +829,33 @@ export default function InventoryApp({
 
                 {loading ? (
                   <div className="space-y-3 p-6">
-                    {[1, 2, 3].map((n) => (
-                      <div key={n} className="h-14 animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-800" />
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <div key={n} className="skeleton h-14 w-full" />
                     ))}
                   </div>
                 ) : filteredItems.length === 0 ? (
-                  <div className="px-6 py-16 text-center text-sm text-zinc-500">
-                    {items.length === 0
-                      ? "No products yet. Add your first product."
-                      : "No products match your search."}
-                    {items.length === 0 && (
-                      <button
-                        type="button"
-                        onClick={() => { resetForm(); goTo("add-product"); }}
-                        className="mt-4 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
-                      >
-                        Add product
-                      </button>
-                    )}
+                  <div className="p-6">
+                    <EmptyState
+                      title={
+                        items.length === 0
+                          ? "No products yet"
+                          : "No matching products"
+                      }
+                      description={
+                        items.length === 0
+                          ? "Start building your catalog by adding your first product with image, price, and quantity."
+                          : "Try adjusting your search or status filter to find what you need."
+                      }
+                      actionLabel={items.length === 0 ? "Add first product" : undefined}
+                      onAction={
+                        items.length === 0
+                          ? () => {
+                              resetForm();
+                              goTo("add-product");
+                            }
+                          : undefined
+                      }
+                    />
                   </div>
                 ) : (
                   <>
@@ -831,7 +863,7 @@ export default function InventoryApp({
                     <div className="hidden overflow-x-auto md:block">
                       <table className="w-full min-w-[640px] text-left text-sm">
                         <thead>
-                          <tr className="border-b border-zinc-100 bg-zinc-50/80 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                          <tr className="border-b border-[var(--border)] bg-[var(--background)]/80 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
                             <th className="px-6 py-3">Product name</th>
                             <th className="px-4 py-3">Price</th>
                             <th className="px-4 py-3">Quantity</th>
@@ -840,28 +872,33 @@ export default function InventoryApp({
                             <th className="px-6 py-3 text-right">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        <tbody className="divide-y divide-[var(--border)]">
                           {filteredItems.map((item) => (
-                            <tr key={item.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50">
+                            <tr
+                              key={item.id}
+                              className="transition-colors duration-150 hover:bg-[var(--primary-soft)]/30"
+                            >
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+                                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[var(--background)] ring-1 ring-[var(--border)]">
                                     {item.imageUrl ? (
                                       <Image src={item.imageUrl} alt="" fill className="object-cover" sizes="40px" />
                                     ) : (
-                                      <div className="flex h-full items-center justify-center text-[10px] text-zinc-400">
+                                      <div className="flex h-full items-center justify-center text-[10px] text-[var(--muted)]">
                                         N/A
                                       </div>
                                     )}
                                   </div>
-                                  <span className="font-medium text-zinc-900 dark:text-zinc-100">{item.name}</span>
+                                  <span className="font-medium text-[var(--foreground)]">{item.name}</span>
                                 </div>
                               </td>
-                              <td className="px-4 py-4 font-medium">${Number(item.price).toFixed(2)}</td>
-                              <td className="px-4 py-4">{item.quantity}</td>
-                              <td className="px-4 py-4 text-zinc-600">{formatDate(item.createdAt)}</td>
+                              <td className="px-4 py-4 font-medium tabular-nums">
+                                ${Number(item.price).toFixed(2)}
+                              </td>
+                              <td className="px-4 py-4 tabular-nums">{item.quantity}</td>
+                              <td className="px-4 py-4 text-[var(--muted)]">{formatDate(item.createdAt)}</td>
                               <td className="px-4 py-4">
-                                <StockStatus quantity={item.quantity} />
+                                <StockBadge quantity={item.quantity} />
                               </td>
                               <td className="px-6 py-4 text-right">
                                 <button
@@ -893,25 +930,29 @@ export default function InventoryApp({
                     </div>
 
                     {/* Mobile list */}
-                    <div className="divide-y divide-zinc-100 dark:divide-zinc-800 md:hidden">
+                    <div className="divide-y divide-[var(--border)] md:hidden">
                       {filteredItems.map((item) => (
-                        <div key={item.id} className="flex gap-3 p-4">
-                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+                        <div key={item.id} className="flex gap-3 p-4 transition-colors hover:bg-[var(--primary-soft)]/20">
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[var(--background)] ring-1 ring-[var(--border)]">
                             {item.imageUrl ? (
                               <Image src={item.imageUrl} alt="" fill className="object-cover" sizes="56px" />
                             ) : (
-                              <div className="flex h-full items-center justify-center text-xs text-zinc-400">—</div>
+                              <div className="flex h-full items-center justify-center text-xs text-[var(--muted)]">
+                                —
+                              </div>
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="font-semibold text-zinc-900 dark:text-zinc-50">{item.name}</p>
-                              <StockStatus quantity={item.quantity} />
+                              <p className="font-semibold text-[var(--foreground)]">{item.name}</p>
+                              <StockBadge quantity={item.quantity} />
                             </div>
-                            <p className="mt-1 text-sm text-zinc-600">
+                            <p className="mt-1 text-sm text-[var(--muted)]">
                               ${Number(item.price).toFixed(2)} · Qty {item.quantity}
                             </p>
-                            <p className="text-xs text-zinc-400">{formatDate(item.createdAt)}</p>
+                            <p className="text-xs text-[var(--muted-foreground)]">
+                              {formatDate(item.createdAt)}
+                            </p>
                             <div className="mt-2 flex gap-3">
                               <button
                                 type="button"
@@ -939,36 +980,41 @@ export default function InventoryApp({
                   </>
                 )}
               </div>
-            </>
+            </div>
           )}
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-50 flex border-t border-zinc-200 bg-white pb-safe dark:border-zinc-800 dark:bg-zinc-950 lg:hidden">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                if (item.id === "add-product") resetForm();
-                goTo(item.id);
-              }}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold ${
-                view === item.id ? "text-[var(--primary-hover)] dark:text-[var(--primary)]" : "text-zinc-500 dark:text-zinc-400"
-              }`}
-            >
-              <NavIcon name={item.icon} className="h-5 w-5" />
-              {item.label.split(" ")[0]}
-            </button>
-          ))}
+        <nav className="fixed inset-x-0 bottom-0 z-50 flex border-t border-[var(--border)] bg-[var(--card)]/95 pb-safe backdrop-blur-md lg:hidden">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  if (item.id === "add-product") resetForm();
+                  goTo(item.id);
+                }}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors",
+                  active
+                    ? "text-[var(--primary-hover)] dark:text-[var(--primary)]"
+                    : "text-[var(--muted)]",
+                )}
+              >
+                <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
+                {item.label.split(" ")[0]}
+              </button>
+            );
+          })}
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold text-zinc-500"
+            className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold text-[var(--muted)]"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
+            <Menu className="h-5 w-5" />
             Menu
           </button>
         </nav>
