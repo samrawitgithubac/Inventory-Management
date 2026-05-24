@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import type { Item } from "@/db/schema";
-import { getStockKind, LOW_STOCK_THRESHOLD } from "@/components/ui/StockBadge";
+import { getStockKind, LOW_STOCK_THRESHOLD } from "@/lib/stock";
 
 const PIE_COLORS = ["#b8860b", "#f59e0b", "#a8a29e"];
 

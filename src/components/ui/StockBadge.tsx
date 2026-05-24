@@ -1,12 +1,7 @@
 import { cn } from "@/lib/cn";
+import { getStockKind } from "@/lib/stock";
 
-const LOW_STOCK_THRESHOLD = 5;
-
-export function getStockKind(quantity: number) {
-  if (quantity === 0) return "out" as const;
-  if (quantity < LOW_STOCK_THRESHOLD) return "low" as const;
-  return "in" as const;
-}
+export { getStockKind, LOW_STOCK_THRESHOLD } from "@/lib/stock";
 
 export function StockBadge({
   quantity,
@@ -42,5 +37,3 @@ export function StockBadge({
     </span>
   );
 }
-
-export { LOW_STOCK_THRESHOLD };

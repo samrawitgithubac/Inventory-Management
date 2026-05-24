@@ -1,15 +1,16 @@
 # Inventory Management CRUD
 
-A single-page inventory management app built with **Next.js**, **Drizzle ORM**, **Neon PostgreSQL**, **Cloudinary**, and **Tailwind CSS**.
+An inventory management app built with **Next.js App Router**, **Drizzle ORM**, **Neon PostgreSQL**, **Cloudinary**, **Zod**, and **Tailwind CSS**.
 
 ## Features
 
-- Create, read, update, and delete inventory items on one page
+- Dashboard with stats, charts, and product table
+- App Router pages: `/`, `/products/new`, `/products/[id]/edit`
 - Product images uploaded to Cloudinary
-- Item details (name, description, quantity, price) stored in Neon PostgreSQL
-- Responsive UI with Tailwind CSS
+- Zod validation on API routes
 - Dark mode and gold-themed dashboard UI
-- Custom delete confirmation modal and toast notifications
+- Vitest unit tests and Playwright e2e tests
+- Drizzle SQL migrations (committed in `drizzle/`)
 - No authentication required
 
 ## Prerequisites
@@ -28,7 +29,7 @@ A single-page inventory management app built with **Next.js**, **Drizzle ORM**, 
 
 2. **Environment variables**
 
-   Copy `.env.example` to `.env` (or `.env.local`) and fill in your credentials:
+   Copy `.env.example` to `.env` and fill in your credentials:
 
    ```bash
    cp .env.example .env
@@ -41,7 +42,15 @@ A single-page inventory management app built with **Next.js**, **Drizzle ORM**, 
    | `CLOUDINARY_API_KEY` | Cloudinary API key |
    | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 
-3. **Push database schema**
+3. **Apply database schema**
+
+   Prefer migrations (recommended for production):
+
+   ```bash
+   npm run db:migrate
+   ```
+
+   For quick local prototyping only:
 
    ```bash
    npm run db:push
@@ -54,6 +63,14 @@ A single-page inventory management app built with **Next.js**, **Drizzle ORM**, 
    ```
 
    Open [http://localhost:3000](http://localhost:3000).
+
+## Routes
+
+| Path | Description |
+|------|-------------|
+| `/` | Dashboard (supports `?status=low` filter) |
+| `/products/new` | Add a product |
+| `/products/[id]/edit` | Edit a product |
 
 ## API Routes
 
@@ -68,16 +85,51 @@ A single-page inventory management app built with **Next.js**, **Drizzle ORM**, 
 
 ## Scripts
 
-- `npm run dev` — Start development server
-- `npm run build` — Production build
-- `npm run db:push` — Push schema to Neon
-- `npm run db:generate` — Generate Drizzle migrations
-- `npm run db:migrate` — Run migrations
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run test` | Run Vitest unit tests |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run test:e2e` | Run Playwright e2e tests |
+| `npm run db:generate` | Generate a new SQL migration from schema |
+| `npm run db:migrate` | Apply migrations to the database |
+| `npm run db:push` | Push schema directly (dev only) |
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── (inventory)/           # App routes (shared layout)
+│   │   ├── layout.tsx
+│   │   ├── page.tsx           # Dashboard (/)
+│   │   └── products/
+│   │       ├── new/page.tsx
+│   │       └── [id]/edit/page.tsx
+│   └── api/                   # REST API
+├── components/
+│   ├── inventory/             # Shell, provider, pages
+│   ├── dashboard/
+│   └── ui/
+├── db/
+│   ├── schema.ts
+│   ├── queries/items.ts
+│   └── index.ts
+├── hooks/
+├── lib/
+│   └── validators/            # Zod schemas + API validation
+└── types/
+drizzle/                       # Committed SQL migrations
+e2e/                           # Playwright tests
+```
 
 ## Tech Stack
 
 - [Next.js](https://nextjs.org) (App Router)
 - [Drizzle ORM](https://orm.drizzle.team)
+- [Zod](https://zod.dev)
 - [Neon](https://neon.tech) PostgreSQL
-- [Cloudinary](https://cloudinary.com) image storage
+- [Cloudinary](https://cloudinary.com)
+- [Vitest](https://vitest.dev) · [Playwright](https://playwright.dev)
 - [Tailwind CSS](https://tailwindcss.com)
