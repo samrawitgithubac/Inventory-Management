@@ -8,6 +8,8 @@ A single-page inventory management app built with **Next.js**, **Drizzle ORM**, 
 - Product images uploaded to Cloudinary
 - Item details (name, description, quantity, price) stored in Neon PostgreSQL
 - Responsive UI with Tailwind CSS
+- Dark mode and gold-themed dashboard UI
+- Custom delete confirmation modal and toast notifications
 - No authentication required
 
 ## Prerequisites
@@ -26,15 +28,15 @@ A single-page inventory management app built with **Next.js**, **Drizzle ORM**, 
 
 2. **Environment variables**
 
-   Copy `.env.example` to `.env.local` and fill in your credentials:
+   Copy `.env.example` to `.env` (or `.env.local`) and fill in your credentials:
 
    ```bash
-   cp .env.example .env.local
+   cp .env.example .env
    ```
 
    | Variable | Description |
    |----------|-------------|
-   | `DATABASE_URL` | Neon connection string |
+   | `DATABASE_URL` | Neon connection string (pooled) |
    | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
    | `CLOUDINARY_API_KEY` | Cloudinary API key |
    | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
